@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payment</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8fafc}.anim-up{animation:up 0.5s ease-out forwards;opacity:0;transform:translateY(30px)}@keyframes up{to{opacity:1;transform:translateY(0)}}</style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React
+
+        const App = () => {
+            const [data, setData] = useState(null)
+            const [qr, setQr] = useState('')
+            const [load, setLoad] = useState(false)
+            const id = window.location.pathname.split('/').pop()
+
+            const check = async () => {
+                setLoad(true)
+                try {
+                    const res = await fetch(`/api/check/${id}`)
+                    const json = await res.json()
+                    if(json.success) {
+                        if(json.data.status === 'completed') window.location.href = `/success/${id}`
+                        if(json.data.status === 'canceled') window.location.href = `/history`
+                        setData(json.data)
+                        QRCode.toDataURL(json.data.qrRaw, {margin:1, width:400}, (err,url)=>setQr(url))
+                    }
+                } catch {}
+                setLoad(false)
+            }
+
+            useEffect(() => { check(); const t = setInterval(check, 5000); return ()=>clearInterval(t) }, [])
+
+            const cancel = async () => {
+                if(!confirm('Cancel this transaction?')) return
+                await fetch('/api/cancel', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({orderId: id}) })
+                window.location.href = '/history'
+            }
+
+            if(!data) return <div className="min-h-screen flex items-center justify-center font-bold text-slate-400">Loading Payment...</div>
+
+            return (
+                <div className="min-h-screen flex items-center justify-center p-4">
+                    <div className="w-full max-w-sm bg-white rounded-3xl shadow-2xl overflow-hidden anim-up">
+                        <div className="bg-slate-900 p-8 text-center text-white relative">
+                            <div className="relative z-10">
+                                <p className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-2">Total Amount</p>
+                                <h1 className="text-4xl font-black tracking-tight">Rp {data.amount.toLocaleString()}</h1>
+                            </div>
+                        </div>
+                        <div className="p-8 flex flex-col items-center">
+                            <div className="bg-white border-2 border-dashed border-slate-200 p-3 rounded-2xl mb-6 shadow-inner">
+                                {qr ? <img src={qr} className="w-48 h-48 object-contain mix-blend-multiply"/> : <div className="w-48 h-48 bg-slate-100 animate-pulse rounded-lg"/>}
+                            </div>
+                            <button onClick={check} disabled={load} className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-bold uppercase text-xs shadow-lg shadow-blue-200 mb-3 transition active:scale-95">{load?'Checking...':'Verify Payment'}</button>
+                            <button onClick={cancel} className="w-full py-3.5 rounded-xl border border-slate-200 text-slate-500 font-bold uppercase text-xs hover:bg-red-50 hover:text-red-600 transition">Cancel Order</button>
+                        </div>
+                    </div>
+                </div>
+            )
+        }
+        ReactDOM.createRoot(document.getElementById('root')).render(<App/>)
+    </script>
+</body>
+</html>
