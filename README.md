@@ -1,4 +1,9 @@
-# 🚀 Auto Create Panel – Payment Gateway QRIS
+# 🚀 buy pansl – Payment Gateway QRIS
+
+<p align="center">
+  <img src="https://files.njy.my.id//dub5.jpg" alt="Thumbnail" />
+</p>
+
 Credit by Fik Projects  
 Bebas rename, asal pake credit 
 
