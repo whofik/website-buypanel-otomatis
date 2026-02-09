@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>History</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>body{font-family:'Plus Jakarta Sans',sans-serif;background:#f8fafc}</style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React
+        const App = () => {
+            const [logs, setLogs] = useState([])
+            
+            useEffect(() => {
+                const ids = JSON.parse(localStorage.getItem('fikproj_hist') || '[]')
+                Promise.all(ids.map(id => fetch(`/api/check/${id}`).then(r=>r.json())))
+                    .then(res => setLogs(res.filter(r => r.success).map(r => r.data)))
+            }, [])
+
+            const clear = () => {
+                if(!confirm("Remove pending/failed logs? Success logs kept.")) return
+                const keep = logs.filter(l => l.status === 'completed')
+                localStorage.setItem('fikproj_hist', JSON.stringify(keep.map(k=>k.orderId)))
+                setLogs(keep)
+            }
+
+            return (
+                <div className="min-h-screen p-4 max-w-2xl mx-auto">
+                    <div className="flex justify-between items-center mb-6">
+                        <h1 className="text-xl font-bold text-slate-900">Transactions</h1>
+                        <div className="flex gap-2">
+                             <a href="/" className="px-3 py-1.5 bg-slate-200 rounded-lg text-[10px] font-bold uppercase text-slate-600">Home</a>
+                             <button onClick={clear} className="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-[10px] font-bold uppercase">Clear</button>
+                        </div>
+                    </div>
+                    
+                    <div className="space-y-3">
+                        {logs.map((h, i) => (
+                            <div key={i} className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                                <div>
+                                    <div className="font-bold text-slate-800 text-sm">{h.productName}</div>
+                                    <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">{h.username} • Rp {h.amount.toLocaleString()}</div>
+                                </div>
+                                {h.status === 'completed' ? (
+                                    <a href={`/success/${h.orderId}`} className="w-full sm:w-auto px-5 py-2.5 bg-green-100 text-green-700 rounded-lg text-xs font-bold uppercase text-center block">Open</a>
+                                ) : h.status === 'canceled' ? (
+                                    <span className="w-full sm:w-auto px-5 py-2.5 bg-slate-100 text-slate-400 rounded-lg text-xs font-bold uppercase text-center block">Canceled</span>
+                                ) : h.status === 'failed' || h.status === 'failed_duplicate' ? (
+                                     <span className="w-full sm:w-auto px-5 py-2.5 bg-red-100 text-red-600 rounded-lg text-xs font-bold uppercase text-center block">Failed</span>
+                                ) : (
+                                    <a href={`/payment/${h.orderId}`} className="w-full sm:w-auto px-5 py-2.5 bg-slate-900 text-white rounded-lg text-xs font-bold uppercase text-center block shadow-md">Pay Now</a>
+                                )}
+                            </div>
+                        ))}
+                        {logs.length===0 && <div className="text-center py-20 text-slate-400 text-xs font-bold uppercase">No Transactions</div>}
+                    </div>
+                </div>
+            )
+        }
+        ReactDOM.createRoot(document.getElementById('root')).render(<App/>)
+    </script>
+</body>
+</html>
