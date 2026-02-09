@@ -1,3 +1,9 @@
+/*
+*  Credit By Fik Projects
+*  rename aja asal pke credit gw :v
+*
+*/
+
 require('dotenv').config()
 const express = require('express')
 const cors = require('cors')
